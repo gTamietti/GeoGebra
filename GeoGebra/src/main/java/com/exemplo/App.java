@@ -1,78 +1,116 @@
-import java.awt.*;
+package com.exemplo;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension; // Importar para usar borda vazia
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.*;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 
-public class App extends JFrame{
+public class App extends JFrame {
     
-    private JTextField input_function;
-    private JTextArea resultArea;
-    private List<Double> xValues;
+    private JTextField input_function; // Campo para a função
+    private JTextArea resultArea; // Área de resultados
+    private List<Double> valorX; // Valores de X
+    private List<Double> valorY; // Valores de f(X)
+    private Graph graph; // Gráfico
 
-    public App(){
+    public App() {
         setTitle("GeoGebra");
-        setSize(400,200); // definir altura e largura por pixels
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); //encerramento do programa ao fechar a janela
+        setSize(800, 600); 
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // encerra o prograa simultaneamente ao fechar a janela
         setLayout(new BorderLayout());
 
-        // Parte superior do painel de interface
-
-        JPanel painelSup = new JPanel();
-        painelSup.setLayout(new GridLayout(1, 2));
-        painelSup.add(new JLabel("Digite a função:"));
-        input_function = new JTextField();
-        painelSup.add(input_function);
-        add(painelSup, BorderLayout.NORTH);
-
         // Área onde serão impressos os dados
-
         resultArea = new JTextArea();
-        resultArea.setEditable(false); //usuário não pode editar o resultado do programa
+        resultArea.setEditable(false); // Desabilita para que o usuário nao possa editar o resultado
         add(new JScrollPane(resultArea), BorderLayout.CENTER);
 
-        // Inserção do botão de executar a função
+        valorX = new ArrayList<>();
+        valorY = new ArrayList<>();
+        graph = new Graph(valorX, valorY);
 
+        // Criar um novo painel para o gráfico
+        JPanel graphPanel = new JPanel();
+        graphPanel.setLayout(new BorderLayout()); 
+        graphPanel.setBorder(new EmptyBorder(20, 10, 20, 10)); // topo , esq , baixo, dir - adicionando margem
+
+        JPanel inputPanel = new JPanel();
+        inputPanel.setLayout(new GridLayout(2, 1)); // Separar o Label do input
+
+        inputPanel.add(new JLabel("Digite a função:")); // Adiciona o label
+        input_function = new JTextField(); // Campo para a função
+        inputPanel.add(input_function); // Adiciona o campo de texto
+
+        graphPanel.add(inputPanel, BorderLayout.NORTH); // Adiciona o painel de entrada ao topo do gráfico
+        graphPanel.add(graph, BorderLayout.CENTER); // Adiciona o gráfico ao painel
+
+        add(graphPanel, BorderLayout.EAST); // Adiciona o painel gráfico ao lado direito
+
+        // Inserção do botão de executar a função
         JButton calcButton = new JButton("Inserir valores de X");
         calcButton.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e){
-                inserirValoresDeX(); //Funciona como um OnClick para executar a função ao botão ser clicado
+            public void actionPerformed(ActionEvent e) {
+                inserirValoresDeX(); // Funciona como um OnClick para executar a função ao botão ser clicado
             }
         });
         add(calcButton, BorderLayout.SOUTH); // Adiciona o botão na parte inferior da janela
 
-        xValues = new ArrayList<>();
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            // Ajuse de dimensão da tela exibida, não precisa preocupar muito com isso
+            public void componentResized(ComponentEvent e) {
+                Dimension newSize = new Dimension((int)(getWidth() * 0.7), getHeight());
+                graphPanel.setPreferredSize(newSize);
+                graphPanel.revalidate(); 
+                graphPanel.repaint();
+            }
+        });
     }
 
-    // Função cahamada no OnClick
-
-    private void inserirValoresDeX(){
-        
+    // Função chamada no OnClick
+    private void inserirValoresDeX() {
         int qntd_x = Integer.parseInt(JOptionPane.showInputDialog("Quantos valores de X deseja inserir (O valor deve ser entre 1 - 5)"));
 
         // Métodos de limpeza de valores anteriores
-        xValues.clear();
+        valorX.clear();
+        valorY.clear();
         resultArea.setText("");
 
-        for(int i=0;i<qntd_x;i++){
+        for (int i = 0; i < qntd_x; i++) {
             double x = Double.parseDouble(JOptionPane.showInputDialog("Insira o valor de X: "));
-            xValues.add(x);
+            valorX.add(x);
 
             double result = calcularValorFuncao(x);
-            resultArea.append("a = " + x + ", f(" + x + ") = " + result + "\n"); // Imprimir na tela o resultado da funcao em f(x)
+            valorY.add(result);
+            resultArea.append("a = " + x + ", f(" + x + ") = " + result + "\n"); // Formatação de resposta
         }
 
+        graph.repaint();
     }
 
-
-    private double calcularValorFuncao(double x){
+    private double calcularValorFuncao(double x) {
         String funcao = input_function.getText(); // Receber a função do input
 
-        Expression expression = new ExpressionBuilder(funcao)  //Cria um objeto definindo a variavel como x
+        Expression expression = new ExpressionBuilder(funcao)  // Cria um objeto definindo a variável como x
             .variables("x")
             .build()
             .setVariable("x", x);
@@ -83,12 +121,9 @@ public class App extends JFrame{
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
-            public void run(){
-                new App().setVisible(true); // método de aparição da janela para usuário
+            public void run() {
+                new App().setVisible(true); // Exibe a janela ao usuario
             }
-
         });
-
     }
-
 }
