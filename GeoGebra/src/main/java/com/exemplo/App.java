@@ -1,7 +1,7 @@
 package com.exemplo;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension; // Importar para usar borda vazia
+import java.awt.Dimension; 
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
