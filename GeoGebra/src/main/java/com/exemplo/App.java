@@ -1,7 +1,7 @@
 package com.exemplo;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension; 
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,6 +9,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -35,48 +37,57 @@ public class App extends JFrame {
     public App() {
         setTitle("GeoGebra");
         setSize(800, 600); 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // encerra o prograa simultaneamente ao fechar a janela
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Área onde serão impressos os dados
         resultArea = new JTextArea();
-        resultArea.setEditable(false); // Desabilita para que o usuário nao possa editar o resultado
+        resultArea.setEditable(false);
         add(new JScrollPane(resultArea), BorderLayout.CENTER);
 
         valorX = new ArrayList<>();
         valorY = new ArrayList<>();
         graph = new Graph(valorX, valorY);
 
-        // Criar um novo painel para o gráfico
         JPanel graphPanel = new JPanel();
         graphPanel.setLayout(new BorderLayout()); 
-        graphPanel.setBorder(new EmptyBorder(20, 10, 20, 10)); // topo , esq , baixo, dir - adicionando margem
+        graphPanel.setBorder(new EmptyBorder(20, 10, 20, 10));
 
         JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new GridLayout(2, 1)); // Separar o Label do input
+        inputPanel.setLayout(new GridLayout(2, 1));
 
-        inputPanel.add(new JLabel("Digite a função:")); // Adiciona o label
-        input_function = new JTextField(); // Campo para a função
-        inputPanel.add(input_function); // Adiciona o campo de texto
+        inputPanel.add(new JLabel("Digite a função:"));
+        input_function = new JTextField();
+        inputPanel.add(input_function);
 
-        graphPanel.add(inputPanel, BorderLayout.NORTH); // Adiciona o painel de entrada ao topo do gráfico
-        graphPanel.add(graph, BorderLayout.CENTER); // Adiciona o gráfico ao painel
+        graphPanel.add(inputPanel, BorderLayout.NORTH);
+        graphPanel.add(graph, BorderLayout.CENTER);
 
-        add(graphPanel, BorderLayout.EAST); // Adiciona o painel gráfico ao lado direito
+        add(graphPanel, BorderLayout.EAST);
 
-        // Inserção do botão de executar a função
         JButton calcButton = new JButton("Inserir valores de X");
         calcButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inserirValoresDeX(); // Funciona como um OnClick para executar a função ao botão ser clicado
+                inserirValoresDeX();
             }
         });
-        add(calcButton, BorderLayout.SOUTH); // Adiciona o botão na parte inferior da janela
+        add(calcButton, BorderLayout.SOUTH);
+
+        JButton integrButton = new JButton("Calcular Integral");
+        integrButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                calcularIntegralIndefinida();
+                int resposta = JOptionPane.showConfirmDialog(App.this, "Deseja calcular uma integral definida?", "Integral Definida", JOptionPane.YES_NO_OPTION);
+                if (resposta == JOptionPane.YES_OPTION) {
+                    calcularIntegralDefinida();
+                }
+            }
+        });
+        add(integrButton, BorderLayout.NORTH);
 
         addComponentListener(new ComponentAdapter() {
             @Override
-            // Ajuse de dimensão da tela exibida, não precisa preocupar muito com isso
             public void componentResized(ComponentEvent e) {
                 Dimension newSize = new Dimension((int)(getWidth() * 0.7), getHeight());
                 graphPanel.setPreferredSize(newSize);
@@ -86,11 +97,9 @@ public class App extends JFrame {
         });
     }
 
-    // Função chamada no OnClick
     private void inserirValoresDeX() {
         int qntd_x = Integer.parseInt(JOptionPane.showInputDialog("Quantos valores de X deseja inserir (O valor deve ser entre 1 - 5)"));
 
-        // Métodos de limpeza de valores anteriores
         valorX.clear();
         valorY.clear();
         resultArea.setText("");
@@ -101,28 +110,65 @@ public class App extends JFrame {
 
             double result = calcularValorFuncao(x);
             valorY.add(result);
-            resultArea.append("a = " + x + ", f(" + x + ") = " + result + "\n"); // Formatação de resposta
+            resultArea.append("x = " + x + ", f(" + x + ") = " + result + "\n");
         }
 
         graph.repaint();
     }
 
     private double calcularValorFuncao(double x) {
-        String funcao = input_function.getText(); // Receber a função do input
+        String funcao = input_function.getText();
 
-        Expression expression = new ExpressionBuilder(funcao)  // Cria um objeto definindo a variável como x
+        Expression expression = new ExpressionBuilder(funcao)
             .variables("x")
             .build()
             .setVariable("x", x);
 
-        return expression.evaluate(); // Retorna o resultado para a expressão em função de x
+        return expression.evaluate();
+    }
+
+    private void calcularIntegralIndefinida() {
+        String funcao = input_function.getText();
+        String integral = integrarPolinomio(funcao);
+        resultArea.append("\n∫ f(x) dx = " + integral + "\n");
+    }
+
+    private void calcularIntegralDefinida() {
+        double a = Double.parseDouble(JOptionPane.showInputDialog("Insira o valor de a:"));
+        double b = Double.parseDouble(JOptionPane.showInputDialog("Insira o valor de b:"));
+        double resultA = calcularValorFuncao(a);
+        double resultB = calcularValorFuncao(b);
+        double integralDefinida = resultB - resultA;
+        resultArea.append("∫ f(x) dx de " + a + " a " + b + " = " + integralDefinida + "\n");
+    }
+
+    private String integrarPolinomio(String funcao) {
+        StringBuilder integral = new StringBuilder();
+        Pattern pattern = Pattern.compile("([+-]?\\d*)x\\^?(\\d*)");
+        Matcher matcher = pattern.matcher(funcao);
+
+        while (matcher.find()) {
+            String coefStr = matcher.group(1);
+            String expStr = matcher.group(2);
+
+            int coeficiente = coefStr.isEmpty() || coefStr.equals("+") ? 1 : coefStr.equals("-") ? -1 : Integer.parseInt(coefStr);
+            int expoente = expStr.isEmpty() ? 1 : Integer.parseInt(expStr);
+
+            int novoCoef = coeficiente / (expoente + 1);
+            int novoExpoente = expoente + 1;
+
+            integral.append(novoCoef).append("x^").append(novoExpoente).append(" + ");
+        }
+
+        integral.append("C");
+        return integral.toString();
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new App().setVisible(true); // Exibe a janela ao usuario
+                new App().setVisible(true);
             }
         });
     }
